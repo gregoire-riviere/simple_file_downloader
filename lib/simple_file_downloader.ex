@@ -69,7 +69,15 @@ defmodule SimpleFileDownloader do
 
   @doc false
   def validate_file(path) do
-    case File.stat(path) do
+    case File.lstat(path) do
+      {:ok, %File.Stat{type: :symlink}} ->
+        case File.stat(path) do
+          {:ok, %File.Stat{type: :regular}} -> :ok
+          {:ok, _} -> {:error, :not_a_file}
+          {:error, :enoent} -> {:error, :file_not_found}
+          {:error, reason} -> {:error, reason}
+        end
+
       {:ok, %File.Stat{type: :regular}} -> :ok
       {:ok, _} -> {:error, :not_a_file}
       {:error, :enoent} -> {:error, :file_not_found}
