@@ -596,6 +596,7 @@ defmodule SimpleFileDownloader.Admin do
     if is_binary(selected_rel) and selected_rel != "" do
       selected_display = html_escape(selected_rel)
       ttl_default = assigns.ttl_default
+      {ttl_default_value, ttl_default_unit} = ttl_seconds_to_ui(ttl_default)
       csrf_token = assigns.csrf_token
       return_path = html_escape(assigns.current_rel)
 
@@ -605,7 +606,9 @@ defmodule SimpleFileDownloader.Admin do
         "return_path" => return_path,
         "return_file" => selected_display,
         "selected_display" => selected_display,
-        "ttl_default" => to_string(ttl_default)
+        "ttl_default_value" => to_string(ttl_default_value),
+        "ttl_unit_hours_selected" => selected_attr(ttl_default_unit == "hours"),
+        "ttl_unit_days_selected" => selected_attr(ttl_default_unit == "days")
       })
     else
       render_partial("partials/selection_hint.html", %{
@@ -671,4 +674,17 @@ defmodule SimpleFileDownloader.Admin do
     end)
     |> Enum.sort_by(fn info -> info.expires_at end)
   end
+
+  def ttl_seconds_to_ui(ttl_seconds) when is_integer(ttl_seconds) and ttl_seconds > 0 do
+    if rem(ttl_seconds, 86_400) == 0 do
+      {div(ttl_seconds, 86_400), "days"}
+    else
+      {div(ttl_seconds + 3599, 3600), "hours"}
+    end
+  end
+
+  def ttl_seconds_to_ui(_ttl_seconds), do: {1, "hours"}
+
+  def selected_attr(true), do: " selected"
+  def selected_attr(false), do: ""
 end

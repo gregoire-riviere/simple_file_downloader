@@ -8,8 +8,14 @@
     <div class="mono">[selected_display]file[/selected_display]</div>
   </div>
   <label class="field">
-    <span>TTL (secondes)</span>
-    <input type="number" name="ttl_seconds" min="60" value="[ttl_default]3600[/ttl_default]">
+    <span>TTL (heures/jours)</span>
+    <div class="inline-form">
+      <input type="number" name="ttl_value" min="1" step="1" value="[ttl_default_value]1[/ttl_default_value]">
+      <select name="ttl_unit">
+        <option value="hours"[ttl_unit_hours_selected][/ttl_unit_hours_selected]>heures</option>
+        <option value="days"[ttl_unit_days_selected][/ttl_unit_days_selected]>jours</option>
+      </select>
+    </div>
   </label>
   <button type="submit" class="btn primary">Creer le lien</button>
 </form>

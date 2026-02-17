@@ -8,10 +8,10 @@
     <form method="post" action="[extend_action][/extend_action]" class="inline-form">
       [csrf_input_extend][/csrf_input_extend]
       <input type="hidden" name="return_path" value="[return_path_extend][/return_path_extend]">
-      <select name="extend_seconds">
-        <option value="3600">+1h</option>
-        <option value="21600">+6h</option>
-        <option value="86400">+1j</option>
+      <input type="number" name="extend_value" min="1" step="1" value="1">
+      <select name="extend_unit">
+        <option value="hours">heures</option>
+        <option value="days">jours</option>
       </select>
       <button type="submit" class="btn">Prolonger</button>
     </form>

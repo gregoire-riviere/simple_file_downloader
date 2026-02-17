@@ -43,6 +43,10 @@ Une interface web est exposee sur `GET /admin` avec une page de connexion.
 Elle permet de parcourir un dossier racine, creer des liens, et administrer les liens actifs.
 Elle peut etre desactivee via `admin.enabled?`.
 
+Pour la creation/prolongation des liens dans l'admin, le TTL se saisit en `heures` ou `jours`
+(valeur entiere positive + unite). Le backend continue d'accepter les anciens champs en secondes
+(`ttl_seconds`, `extend_seconds`) pour compatibilite.
+
 ### Configuration admin (securite)
 
 Definir un mot de passe admin (hash SHA-256 + sel) :

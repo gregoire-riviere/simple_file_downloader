@@ -167,12 +167,12 @@ defmodule SimpleFileDownloader.Router do
       conn
     else
       file_rel = Map.get(conn.params, "file", "")
-      ttl_param = Map.get(conn.params, "ttl_seconds", "")
       return_path = Map.get(conn.params, "return_path", "")
       return_file = Map.get(conn.params, "return_file", "")
 
       result =
-        with {:ok, ttl_seconds} <- parse_ttl(ttl_param),
+        with {:ok, ttl_seconds} <-
+               parse_ttl_from_params(conn.params, "ttl_value", "ttl_unit", "ttl_seconds"),
              {:ok, absolute} <- SimpleFileDownloader.Admin.validate_file_in_root(file_rel),
              {:ok, info} <- SimpleFileDownloader.expose_file(absolute, ttl_seconds) do
           {:ok, info}
@@ -232,10 +232,9 @@ defmodule SimpleFileDownloader.Router do
       conn
     else
       return_path = Map.get(conn.params, "return_path", "")
-      ttl_param = Map.get(conn.params, "extend_seconds", "")
 
       conn =
-        case parse_ttl(ttl_param) do
+        case parse_ttl_from_params(conn.params, "extend_value", "extend_unit", "extend_seconds") do
           {:ok, ttl_seconds} ->
             case SimpleFileDownloader.TokenStore.extend(token, ttl_seconds) do
               {:ok, _expires_at} ->
@@ -340,6 +339,58 @@ defmodule SimpleFileDownloader.Router do
 
       _ -> {:error, :invalid_ttl}
     end
+  end
+
+  @doc false
+  def parse_ttl_from_params(params, value_key, unit_key, legacy_key) do
+    value = Map.get(params, value_key)
+    unit = Map.get(params, unit_key)
+    legacy = Map.get(params, legacy_key, "")
+
+    if ttl_value_unit_present?(value, unit) do
+      parse_ttl_value_unit(value, unit)
+    else
+      parse_ttl(legacy)
+    end
+  end
+
+  @doc false
+  def parse_ttl_value_unit(value, unit) do
+    value = to_string(value || "") |> String.trim()
+    unit = to_string(unit || "") |> String.trim() |> String.downcase()
+
+    with {ttl_value, ""} <- Integer.parse(value),
+         true <- ttl_value > 0,
+         {:ok, multiplier} <- ttl_unit_multiplier(unit) do
+      ttl_seconds = ttl_value * multiplier
+
+      case SimpleFileDownloader.validate_ttl(ttl_seconds) do
+        :ok -> {:ok, ttl_seconds}
+        {:error, :invalid_ttl} -> {:error, :invalid_ttl}
+      end
+    else
+      _ -> {:error, :invalid_ttl}
+    end
+  end
+
+  @doc false
+  def ttl_unit_multiplier("hours"), do: {:ok, 3600}
+  def ttl_unit_multiplier("days"), do: {:ok, 86_400}
+  def ttl_unit_multiplier(_unit), do: {:error, :invalid_ttl}
+
+  @doc false
+  def ttl_value_unit_present?(value, unit) do
+    value_present? =
+      value
+      |> to_string()
+      |> String.trim() != ""
+
+    unit_present? =
+      unit
+      |> to_string()
+      |> String.trim() != ""
+
+    value_present? or unit_present?
   end
 
   @doc false

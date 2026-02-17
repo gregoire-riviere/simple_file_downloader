@@ -204,6 +204,22 @@ input, select {
   gap: 8px;
 }
 
+.inline-form input[type="number"] {
+  width: 88px;
+  min-width: 88px;
+}
+
+.inline-form select {
+  min-width: 100px;
+}
+
+@media (max-width: 600px) {
+  .inline-form input[type="number"] {
+    width: 76px;
+    min-width: 76px;
+  }
+}
+
 .hint {
   padding: 10px;
   border-radius: 10px;

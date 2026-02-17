@@ -28,3 +28,5 @@ simple_file_downloader-*.tar
 data/
 test/
 config/config.exs
+
+web_build*
