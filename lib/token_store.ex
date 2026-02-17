@@ -7,8 +7,17 @@ defmodule SimpleFileDownloader.TokenStore do
   end
 
   def init(_state) do
+    data_dir =
+      case System.get_env("SFD_DATA_DIR") do
+        nil -> "data/"
+        "" -> "data/"
+        value -> value
+      end
+
+    default_storage_path = Path.join(data_dir, "token_store.term")
+
     storage_path =
-      Application.get_env(:simple_file_downloader, :storage_path, "data/token_store.term")
+      Application.get_env(:simple_file_downloader, :storage_path, default_storage_path)
     purge_interval =
       Application.get_env(:simple_file_downloader, :purge_interval_seconds, 300)
 
@@ -40,6 +49,10 @@ defmodule SimpleFileDownloader.TokenStore do
 
   def delete(token) do
     GenServer.call(__MODULE__, {:delete, token})
+  end
+
+  def extend(token, ttl_seconds) do
+    GenServer.call(__MODULE__, {:extend, token, ttl_seconds})
   end
 
   def list do
@@ -87,6 +100,27 @@ defmodule SimpleFileDownloader.TokenStore do
       {:reply, :ok, new_state}
     else
       {:reply, {:error, :not_found}, state}
+    end
+  end
+
+  def handle_call({:extend, token, ttl_seconds}, _from, state) do
+    now = now()
+
+    case Map.get(state.tokens, token) do
+      nil ->
+        {:reply, {:error, :not_found}, state}
+
+      %{expires_at: expires_at} = info ->
+        if expires_at <= now do
+          {:reply, {:error, :expired}, state}
+        else
+          new_expires_at = max(expires_at, now) + ttl_seconds
+          new_info = %{info | expires_at: new_expires_at}
+          new_tokens = Map.put(state.tokens, token, new_info)
+          new_state = %{state | tokens: new_tokens}
+          persist(new_state)
+          {:reply, {:ok, new_expires_at}, new_state}
+        end
     end
   end
 

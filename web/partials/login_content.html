@@ -1,0 +1,13 @@
+<section class="card">
+  <h1>Connexion</h1>
+  [warning][/warning]
+  [error][/error]
+  <form method="post" action="/login" class="form">
+    [csrf_input][/csrf_input]
+    <label class="field">
+      <span>Mot de passe</span>
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="btn primary">Se connecter</button>
+  </form>
+</section>

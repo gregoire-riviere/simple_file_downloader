@@ -1,0 +1,15 @@
+<form method="post" action="/admin/expose" class="form">
+  [csrf_input][/csrf_input]
+  <input type="hidden" name="file" value="[file_value]file[/file_value]">
+  <input type="hidden" name="return_path" value="[return_path][/return_path]">
+  <input type="hidden" name="return_file" value="[return_file]file[/return_file]">
+  <div class="field">
+    <span>Fichier selectionne</span>
+    <div class="mono">[selected_display]file[/selected_display]</div>
+  </div>
+  <label class="field">
+    <span>TTL (secondes)</span>
+    <input type="number" name="ttl_seconds" min="60" value="[ttl_default]3600[/ttl_default]">
+  </label>
+  <button type="submit" class="btn primary">Creer le lien</button>
+</form>
