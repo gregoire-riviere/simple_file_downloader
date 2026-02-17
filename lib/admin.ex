@@ -249,9 +249,43 @@ defmodule SimpleFileDownloader.Admin do
     root_prefix = Path.join(root, "")
 
     if absolute == root or String.starts_with?(absolute, root_prefix) do
-      {:ok, absolute, rel_path}
+      case reject_symlink_segments(absolute, root) do
+        :ok -> {:ok, absolute, rel_path}
+        {:error, reason} -> {:error, reason}
+      end
     else
       {:error, :invalid_path}
+    end
+  end
+
+  def reject_symlink_segments(absolute, root) do
+    relative = Path.relative_to(absolute, root)
+
+    segments =
+      case relative do
+        "." -> []
+        "" -> []
+        value -> Path.split(value)
+      end
+
+    segments
+    |> Enum.reduce_while(root, fn segment, current ->
+      next = Path.join(current, segment)
+
+      case File.lstat(next) do
+        {:ok, %File.Stat{type: :symlink}} ->
+          {:halt, {:error, :invalid_path}}
+
+        {:ok, _} ->
+          {:cont, next}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:error, reason} -> {:error, reason}
+      _ -> :ok
     end
   end
 
