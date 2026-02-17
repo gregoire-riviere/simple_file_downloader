@@ -1,9 +1,16 @@
 defmodule SimpleFileDownloader.Router do
   use Plug.Router
 
+  @web_dir System.get_env("SFD_WEB_DIR", "web_build/")
+
   plug Plug.Logger
   plug :guard_admin_routes
-  plug Plug.Static, at: "/assets", from: "web/assets"
+#   plug Plug.Static, at: "/assets", from: Path.join(@web_dir, "assets")
+  plug Plug.Static, at: "/assets/css", from: Path.join(@web_dir, "css")
+  plug Plug.Static, at: "/assets/js", from: Path.join(@web_dir, "js")
+  plug Plug.Static, at: "/assets/img", from: Path.join(@web_dir, "img")
+  plug Plug.Static, at: "/assets/images", from: Path.join(@web_dir, "images")
+  plug Plug.Static, at: "/assets/fonts", from: Path.join(@web_dir, "fonts")
   plug Plug.Parsers, parsers: [:urlencoded, :multipart], pass: ["*/*"], length: 1_000_000
   plug :fetch_cookies_plug
   plug :put_secret_key_base

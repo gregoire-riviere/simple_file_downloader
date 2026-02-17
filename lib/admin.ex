@@ -2,8 +2,10 @@ defmodule SimpleFileDownloader.Admin do
   require Logger
 
   def template_dir do
+    web_dir = System.get_env("SFD_WEB_DIR", "web_build/")
+
     admin_config()
-    |> Map.get(:template_dir, "web")
+    |> Map.get(:template_dir, web_dir)
   end
 
   def root_dir do
@@ -51,23 +53,35 @@ defmodule SimpleFileDownloader.Admin do
         key
 
       is_binary(key) ->
-        raise ArgumentError,
-              "secret_key_base must be at least 64 bytes. Set :secret_key_base or SFD_SECRET_KEY_BASE."
-
-      true ->
-        generated = generate_secret_key_base()
-
         Logger.warning(
-          "secret_key_base missing. Generated an ephemeral key. Set SFD_SECRET_KEY_BASE for stable sessions."
+          "secret_key_base is too short (< 64 bytes). Using an ephemeral runtime key."
         )
 
-        Application.put_env(:simple_file_downloader, :admin, Map.put(admin_config(), :secret_key_base, generated))
-        generated
+        runtime_secret_key_base()
+
+      true ->
+        Logger.warning(
+          "secret_key_base missing. Using an ephemeral runtime key. Set SFD_SECRET_KEY_BASE for stable sessions."
+        )
+
+        runtime_secret_key_base()
     end
   end
 
   def generate_secret_key_base do
     Base.encode64(:crypto.strong_rand_bytes(64))
+  end
+
+  def runtime_secret_key_base do
+    case Application.get_env(:simple_file_downloader, :runtime_secret_key_base) do
+      key when is_binary(key) and byte_size(key) >= 64 ->
+        key
+
+      _ ->
+        generated = generate_secret_key_base()
+        Application.put_env(:simple_file_downloader, :runtime_secret_key_base, generated)
+        generated
+    end
   end
 
   def admin_password_hash do
@@ -89,12 +103,21 @@ defmodule SimpleFileDownloader.Admin do
   end
 
   def admin_config do
-    case Application.get_env(:simple_file_downloader, :admin) do
-      nil -> %{}
-      config when is_map(config) -> config
-      config when is_list(config) -> Enum.into(config, %{})
-      _ -> %{}
-    end
+    from_app =
+      case Application.get_env(:simple_file_downloader, :admin) do
+        nil -> %{}
+        config when is_map(config) -> config
+        config when is_list(config) -> Enum.into(config, %{})
+        _ -> %{}
+      end
+
+    from_local =
+      case SimpleFileDownloader.local_conf() |> Map.get(:admin) do
+        config when is_map(config) -> config
+        _ -> %{}
+      end
+
+    Map.merge(from_app, from_local)
   end
 
   def verify_password(password) when is_binary(password) do
