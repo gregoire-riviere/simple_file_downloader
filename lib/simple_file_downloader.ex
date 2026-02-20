@@ -7,6 +7,7 @@ defmodule SimpleFileDownloader do
 
     children = [
       {SimpleFileDownloader.TokenStore, []},
+      {SimpleFileDownloader.LoginRateLimiter, []},
       {Plug.Cowboy, scheme: :http, plug: SimpleFileDownloader.Router, options: [port: port]}
     ]
 

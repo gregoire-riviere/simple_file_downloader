@@ -55,55 +55,35 @@ defmodule SimpleFileDownloader.Router do
   end
 
   post "/login" do
+    client_ip = client_ip(conn)
     password = Map.get(conn.params, "password", "")
 
-    case SimpleFileDownloader.Admin.verify_password(password) do
-      {:ok, true} ->
-        expires_at = SimpleFileDownloader.Admin.now() + SimpleFileDownloader.Admin.auth_ttl_seconds()
-        auth_token = SimpleFileDownloader.Admin.generate_auth_token()
+    case SimpleFileDownloader.LoginRateLimiter.check(client_ip) do
+      :ok ->
+        case SimpleFileDownloader.Admin.verify_password(password) do
+          {:ok, true} ->
+            expires_at = SimpleFileDownloader.Admin.now() + SimpleFileDownloader.Admin.auth_ttl_seconds()
+            auth_token = SimpleFileDownloader.Admin.generate_auth_token()
 
-        Plug.CSRFProtection.delete_csrf_token()
+            Plug.CSRFProtection.delete_csrf_token()
+            SimpleFileDownloader.LoginRateLimiter.reset(client_ip)
 
-        conn
-        |> Plug.Conn.put_session(:auth_token, auth_token)
-        |> Plug.Conn.put_session(:auth_expires_at, expires_at)
-        |> redirect("/admin")
+            conn
+            |> Plug.Conn.put_session(:auth_token, auth_token)
+            |> Plug.Conn.put_session(:auth_expires_at, expires_at)
+            |> redirect("/admin")
 
-      {:ok, false} ->
-        csrf_token = Plug.CSRFProtection.get_csrf_token()
+          {:ok, false} ->
+            SimpleFileDownloader.LoginRateLimiter.register_failure(client_ip)
+            send_login_error(conn, 401, "Mot de passe invalide.", true)
 
-        html =
-          SimpleFileDownloader.Admin.render_template("login.html", %{
-            "title" => "Connexion",
-            "nav" => SimpleFileDownloader.Admin.login_nav_html(),
-            "flash" => "",
-            "content" =>
-              SimpleFileDownloader.Admin.login_content(
-                csrf_token,
-                "Mot de passe invalide.",
-                true
-              )
-          })
+          {:error, :missing_admin_password} ->
+            send_login_error(conn, 500, "Admin password not configured.", false)
+        end
 
-        send_html(conn, 401, html)
-
-      {:error, :missing_admin_password} ->
-        csrf_token = Plug.CSRFProtection.get_csrf_token()
-
-        html =
-          SimpleFileDownloader.Admin.render_template("login.html", %{
-            "title" => "Connexion",
-            "nav" => SimpleFileDownloader.Admin.login_nav_html(),
-            "flash" => "",
-            "content" =>
-              SimpleFileDownloader.Admin.login_content(
-                csrf_token,
-                "Admin password not configured.",
-                false
-              )
-          })
-
-        send_html(conn, 500, html)
+      {:error, :blocked, retry_after} ->
+        conn = Plug.Conn.put_resp_header(conn, "retry-after", Integer.to_string(retry_after))
+        send_login_error(conn, 429, "Trop de tentatives. Reessaye dans quelques minutes.", true)
     end
   end
 
@@ -408,6 +388,30 @@ defmodule SimpleFileDownloader.Router do
     |> Plug.Conn.put_resp_content_type("text/html; charset=utf-8")
     |> Plug.Conn.put_resp_header("cache-control", "no-store")
     |> Plug.Conn.send_resp(status, html)
+  end
+
+  @doc false
+  def send_login_error(conn, status, message, configured?) do
+    csrf_token = Plug.CSRFProtection.get_csrf_token()
+
+    html =
+      SimpleFileDownloader.Admin.render_template("login.html", %{
+        "title" => "Connexion",
+        "nav" => SimpleFileDownloader.Admin.login_nav_html(),
+        "flash" => "",
+        "content" => SimpleFileDownloader.Admin.login_content(csrf_token, message, configured?)
+      })
+
+    send_html(conn, status, html)
+  end
+
+  @doc false
+  def client_ip(conn) do
+    case conn.remote_ip do
+      {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
+      {a, b, c, d, e, f, g, h} -> "#{a}:#{b}:#{c}:#{d}:#{e}:#{f}:#{g}:#{h}"
+      _ -> "unknown"
+    end
   end
 
   @doc false
