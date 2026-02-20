@@ -29,4 +29,5 @@ data/
 test/
 config/config.exs
 
-web_build*
+web_build/
+web_build.previous/

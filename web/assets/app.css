@@ -108,6 +108,26 @@ a:hover { text-decoration: underline; }
   border-bottom: none;
 }
 
+.explorer-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fcfcfc;
+  box-shadow: inset 0 1px 0 #ffffff;
+}
+
+.explorer-panel h2 {
+  margin: 0 0 10px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid #ece6dc;
+}
+
+.explorer-panel .list {
+  max-height: 48vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+
 .item-link {
   display: flex;
   justify-content: space-between;
@@ -115,12 +135,41 @@ a:hover { text-decoration: underline; }
   padding: 10px 8px;
   color: inherit;
   min-width: 0;
+  border-radius: 10px;
 }
 
 .item-link > :first-child {
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.item-link:hover {
+  background: #f7f6f3;
+  text-decoration: none;
+}
+
+.item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dir-item .item-name::before,
+.file-item .item-name::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.dir-item .item-name::before {
+  background: #2f855a;
+}
+
+.file-item .item-name::before {
+  background: #0f766e;
 }
 
 .item-link .meta {
@@ -131,6 +180,16 @@ a:hover { text-decoration: underline; }
 .file-item.selected .item-link {
   background: #ecfdf3;
   border-radius: 10px;
+}
+
+.file-tools {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.file-search {
+  width: 100%;
 }
 
 .breadcrumbs {
@@ -218,6 +277,23 @@ input, select {
     width: 76px;
     min-width: 76px;
   }
+
+  .card {
+    padding: 14px;
+  }
+
+  .explorer-panel {
+    padding: 8px;
+  }
+
+  .explorer-panel .list {
+    max-height: none;
+  }
+
+  .item-link {
+    gap: 8px;
+    padding: 8px 6px;
+  }
 }
 
 .hint {
@@ -241,6 +317,8 @@ input, select {
   font-weight: 600;
   background: #eef6ff;
   color: #0f3d64;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .flash--error { background: #fdecec; color: var(--danger); }
@@ -261,7 +339,11 @@ input, select {
   gap: 4px;
 }
 
-.token-path { font-weight: 600; }
+.token-path {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .token-exp {
   font-size: 12px;
@@ -271,6 +353,10 @@ input, select {
 .token-url {
   margin: 8px 0 10px;
   word-break: break-all;
+}
+
+.token-url a {
+  overflow-wrap: anywhere;
 }
 
 .token-actions {
