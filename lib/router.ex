@@ -265,7 +265,13 @@ defmodule SimpleFileDownloader.Router do
 
   @doc false
   def put_secret_key_base(conn, _opts) do
-    %{conn | secret_key_base: SimpleFileDownloader.Admin.secret_key_base()}
+    key =
+      case System.get_env("SFD_SECRET_KEY_BASE") do
+        value when is_binary(value) and byte_size(value) >= 64 -> value
+        _ -> SimpleFileDownloader.Admin.secret_key_base()
+      end
+
+    %{conn | secret_key_base: key}
   end
 
   @doc false
@@ -429,8 +435,8 @@ defmodule SimpleFileDownloader.Router do
 
   @doc false
   def send_file_response(conn, path) do
-    case File.stat(path) do
-      {:ok, %File.Stat{type: :regular}} ->
+    case SimpleFileDownloader.validate_file(path) do
+      :ok ->
         filename = safe_filename(path)
         content_type = MIME.from_path(path) || "application/octet-stream"
 
